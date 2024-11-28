@@ -4,7 +4,7 @@ import json
 
 app = Flask(__name__) #Экземпляр приложения Flask
 
-API_KEY = 'f2xzWIvhaSahTB3vENImWBeqJCTff1Qh'
+API_KEY = ' '
 BASE_URL = "http://dataservice.accuweather.com" #Базовый URL для запросов к AccuWeather
 
 #Получение данных о погоде
