@@ -1,42 +1,43 @@
 from flask import Flask, Response, request, jsonify, render_template
-import requests #Библиотека для выполнения HTTP-запросов
+import requests  # Библиотека для выполнения HTTP-запросов
 from googletrans import Translator
 
-app = Flask(__name__) #Экземпляр приложения Flask
+app = Flask(__name__)  # Экземпляр приложения Flask
 translator = Translator()
 
-API_KEY = '	00RdPed3erHAc01GHcB1OYGXG2Wije28'
-BASE_URL = "http://dataservice.accuweather.com" #Базовый URL для запросов к AccuWeather
+API_KEY = '00RdPed3erHAc01GHcB1OYGXG2Wije28'
+BASE_URL = "http://dataservice.accuweather.com"  # Базовый URL для запросов к AccuWeather
 
-#Получение данных о погоде
+# Получение данных о погоде
 def get_weather(city_name):
     try:
         # Перевод названия города на английский
         translated_city = translator.translate(city_name, src="ru", dest="en").text
-        
-        location_url = f"{BASE_URL}/locations/v1/cities/search" #URL для поиска города
-        response = requests.get(location_url, params={"apikey": API_KEY, "q": translated_city}) #Запрос к API AccuWeather
-        response.raise_for_status() #Проверка успешности ответа от сервера
-        location_data = response.json() #Получаем данные о городе
-        
-        #Если данные о городе не найдены
+
+        location_url = f"{BASE_URL}/locations/v1/cities/search"  # URL для поиска города
+        response = requests.get(location_url, params={"apikey": API_KEY, "q": translated_city})  # Запрос к API AccuWeather
+        response.raise_for_status()  # Проверка успешности ответа от сервера
+        location_data = response.json()  # Получаем данные о городе
+
+        # Если данные о городе не найдены
         if not location_data:
             raise ValueError(f"Город '{city_name}' не найден.")
-        
-        #Если нет ключа для местоположения
+
+        # Если нет ключа для местоположения
         if "Key" not in location_data[0]:
             raise ValueError(f"Данные о местоположении для '{city_name}' некорректны.")
-        
-        location_key = location_data[0]["Key"] #Уникальный ключ для города
+
+        location_key = location_data[0]["Key"]  # Уникальный ключ для города
         forecast_url = f"{BASE_URL}/forecasts/v1/hourly/1hour/{location_key}"
         response = requests.get(forecast_url, params={"apikey": API_KEY, "metric": True})
         response.raise_for_status()
         forecast_data = response.json()
-        
+
         return {
             "temperature": forecast_data[0]["Temperature"]["Value"],
             "wind_speed": forecast_data[0].get("Wind", {}).get("Speed", {}).get("Value", "Нет данных"),
-            "precipitation": forecast_data[0].get("PrecipitationProbability", "Нет данных")
+            "precipitation": forecast_data[0].get("PrecipitationProbability", "Нет данных"),
+            "humidity": forecast_data[0].get("RelativeHumidity", "Нет данных"),  # Добавляем влажность
         }
     except requests.exceptions.RequestException as e:
         return {"error": "Не удалось подключиться к API. Проверьте соединение с интернетом."}
@@ -45,12 +46,12 @@ def get_weather(city_name):
     except Exception as e:
         return {"error": "Произошла непредвиденная ошибка. Попробуйте позже."}
 
-def check_bad_weather(temp, wind_speed, precipitation_prob):
-    #Если данные о погоде отсутствуют, считаем погоду плохой
+def check_bad_weather(temp, wind_speed, precipitation_prob, humidity):
+    # Если данные о погоде отсутствуют, считаем погоду плохой
     if isinstance(temp, str) or isinstance(wind_speed, str) or isinstance(precipitation_prob, str):
         return True
 
-    if (temp < 0 or temp > 35):
+    if temp < 0 or temp > 35:
         return True
     if wind_speed > 50:
         return True
@@ -63,32 +64,34 @@ def index():
     if request.method == "POST":
         start_city = request.form.get("start_city")
         end_city = request.form.get("end_city")
-        
+
         if not start_city or not end_city:
             return render_template("index.html", error="Введите оба города.")
-        
+
         # Получаем данные о погоде для обоих городов
         start_weather = get_weather(start_city)
         end_weather = get_weather(end_city)
-        
+
         # Ошибки получения данных о погоде
         if "error" in start_weather:
             return render_template("index.html", error=f"Ошибка для {start_city}: {start_weather['error']}")
         if "error" in end_weather:
             return render_template("index.html", error=f"Ошибка для {end_city}: {end_weather['error']}")
-        
+
         # Оценка погодных условий
         start_bad_weather = check_bad_weather(
-            start_weather["temperature"], 
-            start_weather["wind_speed"], 
-            start_weather["precipitation"]
+            start_weather["temperature"],
+            start_weather["wind_speed"],
+            start_weather["precipitation"],
+            start_weather['humidity']
         )
         end_bad_weather = check_bad_weather(
-            end_weather["temperature"], 
-            end_weather["wind_speed"], 
-            end_weather["precipitation"]
+            end_weather["temperature"],
+            end_weather["wind_speed"],
+            end_weather["precipitation"],
+            end_weather['humidity']
         )
-        
+
         result = {
             "start_city": {
                 "name": start_city,
@@ -102,7 +105,7 @@ def index():
             }
         }
         return render_template("result.html", result=result)
-    
+
     return render_template("index.html")
 
 @app.errorhandler(404)
