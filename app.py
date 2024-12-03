@@ -1,12 +1,11 @@
 from flask import Flask, Response, request, jsonify, render_template
 import requests #Библиотека для выполнения HTTP-запросов
-import json
 from googletrans import Translator
 
 app = Flask(__name__) #Экземпляр приложения Flask
 translator = Translator()
 
-API_KEY = 'f2xzWIvhaSahTB3vENImWBeqJCTff1Qh'
+API_KEY = '	00RdPed3erHAc01GHcB1OYGXG2Wije28'
 BASE_URL = "http://dataservice.accuweather.com" #Базовый URL для запросов к AccuWeather
 
 #Получение данных о погоде
@@ -51,7 +50,7 @@ def check_bad_weather(temp, wind_speed, precipitation_prob):
     if isinstance(temp, str) or isinstance(wind_speed, str) or isinstance(precipitation_prob, str):
         return True
 
-    if temp < 0 or temp > 35:
+    if (temp < 0 or temp > 35):
         return True
     if wind_speed > 50:
         return True
