@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка погоды</title>
+</head>
+<body>
+    <h1>Проверка погоды</h1>
+    <form method="post" action="/result">
+        <label>Начальная точка (широта, долгота):</label>
+        <input type="text" name="start" required>
+        <br>
+        <label>Конечная точка (широта, долгота):</label>
+        <input type="text" name="end" required>
+        <br>
+        <button type="submit">Проверить</button>
+    </form>
+</body>
+</html>
