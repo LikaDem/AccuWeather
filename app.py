@@ -4,7 +4,7 @@ import json
 
 app = Flask(__name__) #Экземпляр приложения Flask
 
-API_KEY = ' '
+API_KEY = 'f2xzWIvhaSahTB3vENImWBeqJCTff1Qh'
 BASE_URL = "http://dataservice.accuweather.com" #Базовый URL для запросов к AccuWeather
 
 #Получение данных о погоде
@@ -39,6 +39,18 @@ def format_weather_data(data):
         "Вероятность дождя (%)": data[0].get("PrecipitationProbability", "Нет данных")
     }
 
+def check_bad_weather(temp, wind_speed, precipitation_prob):
+    if isinstance(temp, str) or isinstance(wind_speed, str) or isinstance(precipitation_prob, str):
+        return True
+
+    if temp < 0 or temp > 35:
+        return True
+    if wind_speed > 50:
+        return True
+    if precipitation_prob > 70:
+        return True
+    return False
+
 @app.route('/weather', methods=['GET'])
 def weather():
     #координаты из параметров запроса
@@ -51,8 +63,20 @@ def weather():
         #данные о погоде
         weather_data = get_weather(lat, lon)
         formatted_data = format_weather_data(weather_data)
+
+        bad_weather = check_bad_weather(
+            temp=formatted_data['Температура (С)'],
+            wind_speed=formatted_data.get("Скорость ветра (км/ч)", '0'),
+            precipitation_prob=formatted_data.get("Вероятность дождя (%)", '0')
+        )
+
+        result = {
+            'Погода': 'Плохая' if bad_weather else 'Хорошая',
+            'Данные о погоде': formatted_data
+        }
+
         return Response(
-            response=json.dumps(formatted_data, ensure_ascii=False),  #ensure_ascii=False для отображения кириллицы
+            response=json.dumps(result, ensure_ascii=False),  #ensure_ascii=False для отображения кириллицы
             status=200,
             mimetype='application/json' #тип содержимого
         )
